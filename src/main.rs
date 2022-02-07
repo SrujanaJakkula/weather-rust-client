@@ -22,9 +22,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //
 
     let client = reqwest::Client::new();
+    let p = model::User {
+    username: "srujana".into(),
+    password: "password".into(),
+  };
+  
+  let res = reqwest::Client::new()
+    .post("http://54.175.13.88:3000/v1/auth")
+    .json(&p)
+    .send()
+    .await?;
+    
+    let js = res.json::<model::UserResponse>().await?;
 
     let response = client
-        .get("https://api.openweathermap.org/data/2.5/weather?q=corvallis&appid=b98e3f089c86867862f28236d174368a&&units=imperial")
+        .get("http://54.175.13.88:3000/v1/weather")
+        .header("Authorization", "Bearer ".to_owned() + &js.access_token)
         .send()
         .await?;
 
@@ -32,7 +45,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .json::<model::Weather>()
         .await?;
 
-    println!("\nWeather from openweathermap.org:\n {:?}", weather2);
+    println!("\nWeather from ec2 instance:\n {:?}", weather2);
 
+    // fetch greeting
+  let response = client
+    .get("http://54.175.13.88:3000/v1/hello")
+    .header("Authorization", "Basic ".to_owned() + &js.access_token)
+    .send()
+    .await?;
+
+  let greeting = response.json::<model::GreetingResponse>().await?;
+
+  println!(
+    "\nGreetings from ec2 instance:\n {:?}",
+    greeting.greeting
+  );
+  
     Ok(())
 }
